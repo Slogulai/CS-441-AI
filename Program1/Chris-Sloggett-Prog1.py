@@ -1,120 +1,113 @@
 # Christopher Sloggett
 # CS 441 AI Fall 2024
-# Christopher Sloggett
-# CS 441 AI Fall 2024
-import heapq
-import math
 
+# All credit for this code goes to the below site
+# https://www.geeksforgeeks.org/8-puzzle-problem-in-ai/#
+
+import heapq
+#import math
+from termcolor import colored
+
+goal_state = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+initial_state = [4, 5, 0, 6, 1, 8, 7, 3, 2]
+
+moves = {
+    'U': -3,
+    'D': 3,
+    'L': -1,
+    'R': 1
+}
 class PuzzleState:
-    def __init__(self, board, blank_pos, moves=0, previous=None):
+    def __init__(self, board, parent, move, depth, cost):
         self.board = board
-        self.blank_pos = blank_pos
-        self.moves = moves
-        self.previous = previous
+        self.parent = parent
+        self.move = move
+        self.depth = depth
+        self.cost = cost
 
     def __lt__(self, other):
-        # This method is no longer needed to compare heuristics directly
-        return False
+        return self.cost < other.cost
+    
+def heuristic1(board):
+    distance = 0
+    for i in range(9):
+        if board[i] != 0:
+            x1, y1 = divmod(i, 3)
+            x2, y2 = divmod(board[i] - 1, 3)
+            distance += abs(x1 - x2) + abs(y1 - y2)
+    return distance
 
-    def heuristic_misplaced_tiles(self):
-        goal = [(1, 2, 3), (4, 5, 6), (7, 8, 'b')]
-        misplaced = 0
-        for i in range(3):
-            for j in range(3):
-                if self.board[i][j] != 'b' and self.board[i][j] != goal[i][j]:
-                    misplaced += 1
-        return misplaced
+def move_tile(board, move, blank_pos):
+    new_board = board[:]
+    new_blank_pos = blank_pos + moves[move]
+    new_board[blank_pos], new_board[new_blank_pos] = new_board[new_blank_pos], new_board[blank_pos]
+    return new_board
 
-    def heuristic_manhattan(self):
-        distance = 0
-        goal = [(1, 2, 3), (4, 5, 6), (7, 8, 'b')]
-        goal_positions = {goal[i][j]: (i, j) for i in range(3) for j in range(3)}
-        for i in range(3):
-            for j in range(3):
-                if self.board[i][j] != 'b':
-                    goal_pos = goal_positions[self.board[i][j]]
-                    distance += abs(goal_pos[0] - i) + abs(goal_pos[1] - j)
-        return distance
-
-    def heuristic_euclidean(self):
-        distance = 0
-        goal = [(1, 2, 3), (4, 5, 6), (7, 8, 'b')]
-        goal_positions = {goal[i][j]: (i, j) for i in range(3) for j in range(3)}
-        for i in range(3):
-            for j in range(3):
-                if self.board[i][j] != 'b':
-                    goal_pos = goal_positions[self.board[i][j]]
-                    distance += math.sqrt((goal_pos[0] - i) ** 2 + (goal_pos[1] - j) ** 2)
-        return distance
-
-    def get_neighbors(self):
-        neighbors = []
-        x, y = self.blank_pos
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < 3 and 0 <= ny < 3:
-                new_board = [list(row) for row in self.board]
-                new_board[x][y], new_board[nx][ny] = new_board[nx][ny], new_board[x][y]
-                neighbors.append(PuzzleState(new_board, (nx, ny), self.moves + 1, self))
-        return neighbors
-
-    def is_goal(self):
-        return self.board == [(1, 2, 3), (4, 5, 6), (7, 8, 'b')]
-
-    def __repr__(self):
-        return '\n'.join([' '.join(map(str, row)) for row in self.board])
-
-def solve_puzzle(start_board, heuristic, max_steps=10000):
-    start_blank_pos = [(i, row.index('b')) for i, row in enumerate(start_board) if 'b' in row][0]
-    start_state = PuzzleState(start_board, start_blank_pos)
-    priority_queue = []
-    heapq.heappush(priority_queue, (heuristic(start_state), start_state))
-    visited = set()
-    steps = 0
-
-    while priority_queue and steps < max_steps:
-        _, current_state = heapq.heappop(priority_queue)
-        if current_state.is_goal():
-            return current_state
-        visited.add(tuple(map(tuple, current_state.board)))
-        for neighbor in current_state.get_neighbors():
-            if tuple(map(tuple, neighbor.board)) not in visited:
-                heapq.heappush(priority_queue, (heuristic(neighbor), neighbor))
-        steps += 1
-
-    return None
+def print_board(board):
+    print
+    print("+---+---+---+")
+    for row in range(0, 9, 3):
+        row_visual = "|"
+        for tile in board[row:row + 3]:
+            if tile == 0:  # Blank tile
+                row_visual += f" {colored(' ', 'cyan')} |"
+            else:
+                row_visual += f" {colored(str(tile), 'yellow')} |"
+        print(row_visual)
+        print("+---+---+---+")        
 
 def print_solution(solution):
     path = []
-    while solution:
-        path.append(solution)
-        solution = solution.previous
+    current = solution
+    while current:
+        path.append(current)
+        current = current.parent
     path.reverse()
-    for state in path:
-        print(state)
-        print()
 
-# Example usage
-initial_states = [
-    [[4, 5, 'b'], [6, 1, 8], [7, 3, 2]],
-    
-]
+    for step in path:
+        print(f"Move: {step.move}")
+        print_board(step.board)
 
-heuristics = [
-    ("Misplaced Tiles", PuzzleState.heuristic_misplaced_tiles),
-    ("Manhattan Distance", PuzzleState.heuristic_manhattan),
-    ("Euclidean Distance", PuzzleState.heuristic_euclidean)
-]
 
-for heuristic_name, heuristic in heuristics:
-    print(f"Solving with {heuristic_name}:")
-    for i, start_board in enumerate(initial_states):
-        print(f"Initial state {i + 1}:")
-        solution = solve_puzzle(start_board, heuristic)
-        if solution:
-            print("Solution found:")
-            print_solution(solution)
-        else:
-            print("No solution found within the maximum number of steps.")
-        print()
+def a_star(start_state):
+    open_list = []
+    closed_list = set()
+    heapq.heappush(open_list, PuzzleState(start_state, None, None, 0, heuristic1(start_state)))
+
+    while open_list:
+        current_state = heapq.heappop(open_list)
+
+        if current_state.board == goal_state:
+            return current_state
+
+        closed_list.add(tuple(current_state.board))
+
+        blank_pos = current_state.board.index(0)
+
+        for move in moves:
+            if move == 'U' and blank_pos < 3:  # Invalid move up
+                continue
+            if move == 'D' and blank_pos > 5:  # Invalid move down
+                continue
+            if move == 'L' and blank_pos % 3 == 0:  # Invalid move left
+                continue
+            if move == 'R' and blank_pos % 3 == 2:  # Invalid move right
+                continue
+
+            new_board = move_tile(current_state.board, move, blank_pos)
+
+            if tuple(new_board) in closed_list:
+                continue
+
+            new_state = PuzzleState(new_board, current_state, move, current_state.depth + 1, current_state.depth + 1 + heuristic1(new_board))
+            heapq.heappush(open_list, new_state)
+
+    return None
+
+solution = a_star(initial_state)
+
+if solution:
+    print(colored("Sloution found: ", "green"))
+    print_solution(solution)
+else:
+    print(colored("No solution found", "red"))
