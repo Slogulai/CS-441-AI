@@ -6,7 +6,7 @@
 
 import heapq
 #import math
-from termcolor import colored
+from termcolor import colored # Must install term color with pip3 for program to run
 
 goal_state = [1, 2, 3, 4, 5, 6, 7, 8, 0]
 initial_state = [4, 5, 0, 6, 1, 8, 7, 3, 2]
@@ -28,7 +28,7 @@ class PuzzleState:
     def __lt__(self, other):
         return self.cost < other.cost
     
-def heuristic1(board):
+def heuristic1(board): # Misplaced tile heuristic
     misplaced = 0;
     for i in range(3):
         for j in range(3):
@@ -36,7 +36,7 @@ def heuristic1(board):
                 misplaced += 1
     return misplaced
 
-def heuristic2(board):
+def heuristic2(board): # Manhattan distance heuristic
     distance = 0
     for i in range(9):
         if board[i] != 0:
@@ -45,7 +45,7 @@ def heuristic2(board):
             distance += abs(x1 - x2) + abs(y1 - y2)
     return distance
 
-def heuristic3():
+def heuristic3(): # Unchosen heuristic
     pass
 
 def move_tile(board, move, blank_pos):
