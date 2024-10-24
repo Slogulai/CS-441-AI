@@ -9,7 +9,13 @@ import heapq
 from termcolor import colored # Must install term color with pip3 for program to run
 
 goal_state = [1, 2, 3, 4, 5, 6, 7, 8, 0]
-initial_state = [4, 5, 0, 6, 1, 8, 7, 3, 2]
+state_1 = [2, 1, 3, 4, 5, 6, 0, 8, 7]
+state_2 = [4, 8, 3, 1, 5, 6, 7, 2, 0]  # 14 inversions
+state_3 = [8, 1, 2, 7, 3, 4, 6, 5, 0]  # 8 inversions
+state_4 = [6, 8, 3, 0, 1, 5, 7, 4, 2]  # 14 inversions 
+
+# Odd parity state
+state_5 = [1, 2, 3, 4, 5, 0, 6, 8, 7]  # 1 inversion
 
 moves = {
     'U': -3,
@@ -30,10 +36,9 @@ class PuzzleState:
     
 def heuristic1(board): # Misplaced tile heuristic
     misplaced = 0;
-    for i in range(3):
-        for j in range(3):
-            if board[i][j] != 0 and board[i][j] != 3 * i + j + 1:
-                misplaced += 1
+    for i in range(len(board)):
+        if board[i] != 0 and board[i] != goal_state[i]:
+            misplaced += 1
     return misplaced
 
 def heuristic2(board): # Manhattan distance heuristic
@@ -47,6 +52,14 @@ def heuristic2(board): # Manhattan distance heuristic
 
 def heuristic3(): # Unchosen heuristic
     pass
+
+def count_inversions(board):
+    inversions = 0
+    for i in range(len(board)):
+        for j in range(i + 1, len(board)):
+            if board[i] != 0 and board[j] != 0 and board[i] > board[j]:
+                inversions += 1
+    return inversions
 
 def move_tile(board, move, blank_pos):
     new_board = board[:]
@@ -75,9 +88,23 @@ def print_solution(solution):
         current = current.parent
     path.reverse()
 
+    formatted_path = []
     for step in path:
-        print(f"Move: {step.move}")
-        print_board(step.board)
+        formatted_board = []
+        for tile in step.board:
+            if tile == 0:
+                formatted_board.append('b')
+            else:
+                formatted_board.append(str(tile))
+        formatted_path.append(f"({' '.join(formatted_board)})")
+
+    for i in range(len(formatted_path)):
+        if i > 0 and i % 5 == 0:
+            print()  # Print a new line after every 5 steps
+        if i < len(formatted_path) - 1:
+            print(formatted_path[i], end=" → ")
+        else:
+            print(formatted_path[i])
 
 def best_first_search():
     pass
@@ -119,90 +146,140 @@ def a_star(start_state, heuristic):
 
 
 def main():
-    while True:
-        print("Welcome to the 8 Puzzle using the A* and Best First Search Algorithms!")
-        print("Please choose from the following options:")
-        print("1. A* Algorithm")
-        print("2. Best First Search Algorithm")
-        print("3. Exit")
+    initial_states = [state_1, state_2, state_3, state_4, state_5]
 
-        choice = input("Enter your choice: ")
+    total_steps_h1 = 0
+    solutions_h1 = []
+    print("Heuristic 1 (Misplaced Tile):")
+    for i, state in enumerate(initial_states, start=1):
+        print(f"\nState {i}:")
+        print_board(state)
+        if count_inversions(state) % 2 == 0:
+            solution = a_star(state, heuristic1)
+            steps = 0
+            current = solution
+            while current.parent is not None:
+                steps += 1
+                current = current.parent
+            total_steps_h1 += steps
+            solutions_h1.append(solution)
+            print(f"Solution path {i}:")
+            print_solution(solution)
+        else:
+            print(colored("Odd number of inversions, no solution possible", "red"))
+            solutions_h1.append(None)
+    average_steps_h1 = total_steps_h1 / len(initial_states)
+    print(f"\nAverage number of steps (Heuristic 1): {average_steps_h1}")
 
-        if choice == "1":
-            print("You chose the A* Algorithm")
-            print("The initial state is:")
-            print_board(initial_state)
-            print("Choose a heuristic:")
-            print("1. Misplaced Tiles")
-            print("2. Manhattan Distance")
-            print("3. Unchosen Heuristic")
+    # Compare heuristic 2 (Manhattan distance)
+    total_steps_h2 = 0
+    solutions_h2 = []
+    print("\nHeuristic 2 (Manhattan Distance):")
+    for i, state in enumerate(initial_states, start=1):
+        print(f"\nState {i}:")
+        print_board(state)
+        if count_inversions(state) % 2 == 0:
+            solution = a_star(state, heuristic2)
+            steps = 0
+            current = solution
+            while current.parent is not None:
+                steps += 1
+                current = current.parent
+            total_steps_h2 += steps
+            solutions_h2.append(solution)
+            print(f"Solution path {i}:")
+            print_solution(solution)
+        else:
+            print(colored("Odd number of inversions, no solution possible", "red"))
+            solutions_h2.append(None)
+    average_steps_h2 = total_steps_h2 / len(initial_states)
+    print(f"\nAverage number of steps (Heuristic 2): {average_steps_h2}")
 
-            a_star_choice = input("Enter your choice: ")
-            
-            if a_star_choice == "1":
-                print("You chose the Misplaced Tiles heuristic")
-                solution = a_star(initial_state, heuristic1)
-                if solution:
-                    print(colored("Sloution found: ", "green"))
-                    print_solution(solution)
-                else:
-                    print(colored("No solution found", "red"))
-            elif a_star_choice == "2":
-                print("You chose the Manhattan Distance heuristic")
-                solution = a_star(initial_state, heuristic2)
-                if solution:
-                    print(colored("Sloution found: ", "green"))
-                    print_solution(solution)
-                else:
-                    print(colored("No solution found", "red"))
-            elif a_star_choice == "3":
-                print("You chose the Unchosen Heuristic")
-                solution = a_star(initial_state, heuristic1)
-                if solution:
-                    print(colored("Sloution found: ", "green"))
-                    print_solution(solution)
-                else:
-                    print(colored("No solution found", "red"))
 
-        elif choice == "2":
-            print("You chose the Best First Search Algorithm")
-            print("The initial state is:")
-            print_board(initial_state)
-            print("Choose a heuristic:")
-            print("1. Misplaced Tiles")
-            print("2. Manhattan Distance")
-            print("3. Unchosen Heuristic")
-
-            bfs_choice = input("Enter your choice: ")
-
-            if bfs_choice == "1":
-                print("You chose the Misplaced Tiles heuristic")
-                solution = best_first_search(initial_state, heuristic1)
-                if solution:
-                    print(colored("Sloution found: ", "green"))
-                    print_solution(solution)
-                else:
-                    print(colored("No solution found", "red"))
-            elif bfs_choice == "2":
-                print("You chose the Manhattan Distance heuristic")
-                solution = best_first_search(initial_state, heuristic2)
-                if solution:
-                    print(colored("Sloution found: ", "green"))
-                    print_solution(solution)
-                else:
-                    print(colored("No solution found", "red"))
-            elif bfs_choice == "3":
-                print("You chose the Unchosen Heuristic")
-                solution = best_first_search(initial_state, heuristic1)
-                if solution:
-                    print(colored("Sloution found: ", "green"))
-                    print_solution(solution)
-                else:
-                    print(colored("No solution found", "red"))
-
-        elif choice == "3":
-            print("You chose to exit the program")
-            break
+#    while True:
+#        print("Welcome to the 8 Puzzle using the A* and Best First Search Algorithms!")
+#        print("Please choose from the following options:")
+#        print("1. A* Algorithm")
+#        print("2. Best First Search Algorithm")
+#        print("3. Exit")
+#
+#        choice = input("Enter your choice: ")
+#
+#        if choice == "1":
+#            print("You chose the A* Algorithm")
+#            print("The initial state is:")
+#            print_board(initial_state)
+#            print("Choose a heuristic:")
+#            print("1. Misplaced Tiles")
+#            print("2. Manhattan Distance")
+#            print("3. Unchosen Heuristic")
+#
+#            a_star_choice = input("Enter your choice: ")
+#            
+#            if a_star_choice == "1":
+#                print("You chose the Misplaced Tiles heuristic")
+#                solution = a_star(initial_state, heuristic1)
+#                if solution:
+#                    print(colored("Sloution found: ", "green"))
+#                    print_solution(solution)
+#                else:
+#                    print(colored("No solution found", "red"))
+#            elif a_star_choice == "2":
+#                print("You chose the Manhattan Distance heuristic")
+#                solution = a_star(initial_state, heuristic2)
+#                if solution:
+#                    print(colored("Sloution found: ", "green"))
+#                    print_solution(solution)
+#                else:
+#                    print(colored("No solution found", "red"))
+#            elif a_star_choice == "3":
+#                print("You chose the Unchosen Heuristic")
+#                solution = a_star(initial_state, heuristic1)
+#                if solution:
+#                    print(colored("Sloution found: ", "green"))
+#                    print_solution(solution)
+#                else:
+#                    print(colored("No solution found", "red"))
+#
+#        elif choice == "2":
+#            print("You chose the Best First Search Algorithm")
+#            print("The initial state is:")
+#            print_board(initial_state)
+#            print("Choose a heuristic:")
+#            print("1. Misplaced Tiles")
+#            print("2. Manhattan Distance")
+#            print("3. Unchosen Heuristic")
+#
+#            bfs_choice = input("Enter your choice: ")
+#
+#            if bfs_choice == "1":
+#                print("You chose the Misplaced Tiles heuristic")
+#                solution = best_first_search(initial_state, heuristic1)
+#                if solution:
+#                    print(colored("Sloution found: ", "green"))
+#                    print_solution(solution)
+#                else:
+#                    print(colored("No solution found", "red"))
+#            elif bfs_choice == "2":
+#                print("You chose the Manhattan Distance heuristic")
+#                solution = best_first_search(initial_state, heuristic2)
+#                if solution:
+#                    print(colored("Sloution found: ", "green"))
+#                    print_solution(solution)
+#                else:
+#                    print(colored("No solution found", "red"))
+#            elif bfs_choice == "3":
+#                print("You chose the Unchosen Heuristic")
+#                solution = best_first_search(initial_state, heuristic1)
+#                if solution:
+#                    print(colored("Sloution found: ", "green"))
+#                    print_solution(solution)
+#                else:
+#                    print(colored("No solution found", "red"))
+#
+#        elif choice == "3":
+#            print("You chose to exit the program")
+#            break
 
 
 
