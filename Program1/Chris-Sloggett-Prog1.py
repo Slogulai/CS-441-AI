@@ -5,7 +5,7 @@
 # https://www.geeksforgeeks.org/8-puzzle-problem-in-ai/#
 
 import heapq
-#import math
+import math
 from termcolor import colored # Must install term color with pip3 for program to run
 
 goal_state = [1, 2, 3, 4, 5, 6, 7, 8, 0]
@@ -33,25 +33,6 @@ class PuzzleState:
 
     def __lt__(self, other):
         return self.cost < other.cost
-    
-def heuristic1(board): # Misplaced tile heuristic
-    misplaced = 0;
-    for i in range(len(board)):
-        if board[i] != 0 and board[i] != goal_state[i]:
-            misplaced += 1
-    return misplaced
-
-def heuristic2(board): # Manhattan distance heuristic
-    distance = 0
-    for i in range(9):
-        if board[i] != 0:
-            x1, y1 = divmod(i, 3)
-            x2, y2 = divmod(board[i] - 1, 3)
-            distance += abs(x1 - x2) + abs(y1 - y2)
-    return distance
-
-def heuristic3(): # Unchosen heuristic
-    pass
 
 def count_inversions(board):
     inversions = 0
@@ -105,9 +86,66 @@ def print_solution(solution):
             print(formatted_path[i], end=" → ")
         else:
             print(formatted_path[i])
+    
+def heuristic1(board): # Misplaced tile heuristic
+    misplaced = 0;
+    for i in range(len(board)):
+        if board[i] != 0 and board[i] != goal_state[i]:
+            misplaced += 1
+    return misplaced
 
-def best_first_search():
-    pass
+def heuristic2(board): # Manhattan distance heuristic
+    distance = 0
+    for i in range(9):
+        if board[i] != 0:
+            x1, y1 = divmod(i, 3)
+            x2, y2 = divmod(board[i] - 1, 3)
+            distance += abs(x1 - x2) + abs(y1 - y2)
+    return distance
+
+def heuristic3(board): # Euclidean distance heuristic
+    distance = 0
+    for i in range(9):
+        if board[i] != 0:
+            x1, y1 = divmod(i, 3)
+            x2, y2 = divmod(board[i] - 1, 3)
+            distance += math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+    return distance
+
+def best_first_search(start_state, heuristic):
+    open_list = []
+    closed_list = set()
+    heapq.heappush(open_list, PuzzleState(start_state, None, None, 0, heuristic(start_state)))
+
+    while open_list:
+        current_state = heapq.heappop(open_list)
+
+        if current_state.board == goal_state:
+            return current_state
+
+        closed_list.add(tuple(current_state.board))
+
+        blank_pos = current_state.board.index(0)
+
+        for move in moves:
+            if move == 'U' and blank_pos < 3:  # Invalid move up
+                continue
+            if move == 'D' and blank_pos > 5:  # Invalid move down
+                continue
+            if move == 'L' and blank_pos % 3 == 0:  # Invalid move left
+                continue
+            if move == 'R' and blank_pos % 3 == 2:  # Invalid move right
+                continue
+
+            new_board = move_tile(current_state.board, move, blank_pos)
+
+            if tuple(new_board) in closed_list:
+                continue
+
+            new_state = PuzzleState(new_board, current_state, move, current_state.depth + 1, heuristic(new_board))
+            heapq.heappush(open_list, new_state)
+
+    return None
 
 def a_star(start_state, heuristic):
     open_list = []
@@ -139,7 +177,10 @@ def a_star(start_state, heuristic):
             if tuple(new_board) in closed_list:
                 continue
 
-            new_state = PuzzleState(new_board, current_state, move, current_state.depth + 1, current_state.depth + 1 + heuristic(new_board))
+            g_cost = current_state.depth + 1
+            h_cost = heuristic(new_board)
+            f_cost = g_cost + h_cost
+            new_state = PuzzleState(new_board, current_state, move, g_cost, f_cost)
             heapq.heappush(open_list, new_state)
 
     return None
@@ -148,9 +189,10 @@ def a_star(start_state, heuristic):
 def main():
     initial_states = [state_1, state_2, state_3, state_4, state_5]
 
+    #A* with Misplaced Tile
     total_steps_h1 = 0
     solutions_h1 = []
-    print("Heuristic 1 (Misplaced Tile):")
+    print(colored("Heuristic 1 (A*, Misplaced Tile):", "green"))
     for i, state in enumerate(initial_states, start=1):
         print(f"\nState {i}:")
         print_board(state)
@@ -163,18 +205,19 @@ def main():
                 current = current.parent
             total_steps_h1 += steps
             solutions_h1.append(solution)
-            print(f"Solution path {i}:")
+            print(f"Solution path for State {i}:")
             print_solution(solution)
+            print("Number of steps: ", steps)
         else:
             print(colored("Odd number of inversions, no solution possible", "red"))
             solutions_h1.append(None)
     average_steps_h1 = total_steps_h1 / len(initial_states)
-    print(f"\nAverage number of steps (Heuristic 1): {average_steps_h1}")
+    print(f"\nAverage number of steps (A*, Misplaced Tiles): {average_steps_h1}")
 
-    # Compare heuristic 2 (Manhattan distance)
+    #A* with Manhattan Distance
     total_steps_h2 = 0
     solutions_h2 = []
-    print("\nHeuristic 2 (Manhattan Distance):")
+    print(colored("\nHeuristic 2 (A*, Manhattan Distance):", "green"))  
     for i, state in enumerate(initial_states, start=1):
         print(f"\nState {i}:")
         print_board(state)
@@ -187,99 +230,119 @@ def main():
                 current = current.parent
             total_steps_h2 += steps
             solutions_h2.append(solution)
-            print(f"Solution path {i}:")
+            print(f"Solution path for State {i}:")
             print_solution(solution)
+            print("Number of steps: ", steps)
         else:
             print(colored("Odd number of inversions, no solution possible", "red"))
             solutions_h2.append(None)
     average_steps_h2 = total_steps_h2 / len(initial_states)
-    print(f"\nAverage number of steps (Heuristic 2): {average_steps_h2}")
+    print(f"\nAverage number of steps (A*, Manhattan Distance): {average_steps_h2}")
+
+    #A* with Euclidean Distance
+    total_steps_h3 = 0
+    solutions_h3 = []
+    print(colored("\nHeuristic 3 (A*, Euclidean Distance):", "green"))  
+    for i, state in enumerate(initial_states, start=1):
+        print(f"\nState {i}:")
+        print_board(state)
+        if count_inversions(state) % 2 == 0:
+            solution = a_star(state, heuristic3)
+            steps = 0
+            current = solution
+            while current.parent is not None:
+                steps += 1
+                current = current.parent
+            total_steps_h3 += steps
+            solutions_h3.append(solution)
+            print(f"Solution path for State {i}:")
+            print_solution(solution)
+            print("Number of steps: ", steps)
+        else:
+            print(colored("Odd number of inversions, no solution possible", "red"))
+            solutions_h3.append(None)
+    average_steps_h3 = total_steps_h3 / len(initial_states)
+    print(f"\nAverage number of steps (A*, Euclidean Distance): {average_steps_h3}")
 
 
-#    while True:
-#        print("Welcome to the 8 Puzzle using the A* and Best First Search Algorithms!")
-#        print("Please choose from the following options:")
-#        print("1. A* Algorithm")
-#        print("2. Best First Search Algorithm")
-#        print("3. Exit")
-#
-#        choice = input("Enter your choice: ")
-#
-#        if choice == "1":
-#            print("You chose the A* Algorithm")
-#            print("The initial state is:")
-#            print_board(initial_state)
-#            print("Choose a heuristic:")
-#            print("1. Misplaced Tiles")
-#            print("2. Manhattan Distance")
-#            print("3. Unchosen Heuristic")
-#
-#            a_star_choice = input("Enter your choice: ")
-#            
-#            if a_star_choice == "1":
-#                print("You chose the Misplaced Tiles heuristic")
-#                solution = a_star(initial_state, heuristic1)
-#                if solution:
-#                    print(colored("Sloution found: ", "green"))
-#                    print_solution(solution)
-#                else:
-#                    print(colored("No solution found", "red"))
-#            elif a_star_choice == "2":
-#                print("You chose the Manhattan Distance heuristic")
-#                solution = a_star(initial_state, heuristic2)
-#                if solution:
-#                    print(colored("Sloution found: ", "green"))
-#                    print_solution(solution)
-#                else:
-#                    print(colored("No solution found", "red"))
-#            elif a_star_choice == "3":
-#                print("You chose the Unchosen Heuristic")
-#                solution = a_star(initial_state, heuristic1)
-#                if solution:
-#                    print(colored("Sloution found: ", "green"))
-#                    print_solution(solution)
-#                else:
-#                    print(colored("No solution found", "red"))
-#
-#        elif choice == "2":
-#            print("You chose the Best First Search Algorithm")
-#            print("The initial state is:")
-#            print_board(initial_state)
-#            print("Choose a heuristic:")
-#            print("1. Misplaced Tiles")
-#            print("2. Manhattan Distance")
-#            print("3. Unchosen Heuristic")
-#
-#            bfs_choice = input("Enter your choice: ")
-#
-#            if bfs_choice == "1":
-#                print("You chose the Misplaced Tiles heuristic")
-#                solution = best_first_search(initial_state, heuristic1)
-#                if solution:
-#                    print(colored("Sloution found: ", "green"))
-#                    print_solution(solution)
-#                else:
-#                    print(colored("No solution found", "red"))
-#            elif bfs_choice == "2":
-#                print("You chose the Manhattan Distance heuristic")
-#                solution = best_first_search(initial_state, heuristic2)
-#                if solution:
-#                    print(colored("Sloution found: ", "green"))
-#                    print_solution(solution)
-#                else:
-#                    print(colored("No solution found", "red"))
-#            elif bfs_choice == "3":
-#                print("You chose the Unchosen Heuristic")
-#                solution = best_first_search(initial_state, heuristic1)
-#                if solution:
-#                    print(colored("Sloution found: ", "green"))
-#                    print_solution(solution)
-#                else:
-#                    print(colored("No solution found", "red"))
-#
-#        elif choice == "3":
-#            print("You chose to exit the program")
-#            break
+
+    #Best First Search with Misplaced Tile
+    total_steps_bh1 = 0
+    solutions_bh1 = []
+    print(colored("\nBest First Search with Heuristic 1 (Misplaced Tile):", "green"))
+    for i, state in enumerate(initial_states, start=1):
+        print(f"\nState {i}:")
+        print_board(state)
+        if count_inversions(state) % 2 == 0:
+            solution = best_first_search(state, heuristic1)
+            steps = 0
+            current = solution
+            while current.parent is not None:
+                steps += 1
+                current = current.parent
+            total_steps_bh1 += steps
+            solutions_bh1.append(solution)
+            print(f"Solution path for State {i}:")
+            print_solution(solution)
+            print("Number of steps: ", steps)
+        else:
+            print(colored("Odd number of inversions, no solution possible", "red"))
+            solutions_bh1.append(None)
+    average_steps_bh1 = total_steps_bh1 / len(initial_states)
+    print(f"\nAverage number of steps (Best First Search, Misplaced Tiles): {average_steps_bh1}")
+
+    #Best First Search with Manhattan Distance
+    total_steps_bh2 = 0
+    solutions_bh2 = []
+    print(colored("\nBest First Search with Heuristic 2 (Manhattan Distance):", "green"))
+    for i, state in enumerate(initial_states, start=1):
+        print(f"\nState {i}:")
+        print_board(state)
+        if count_inversions(state) % 2 == 0:
+            solution = best_first_search(state, heuristic2)
+            steps = 0
+            current = solution
+            while current.parent is not None:
+                steps += 1
+                current = current.parent
+            total_steps_bh2 += steps
+            solutions_bh2.append(solution)
+            print(f"Solution path for State {i}:")
+            print_solution(solution)
+            print("Number of steps: ", steps)
+        else:
+            print(colored("Odd number of inversions, no solution possible", "red"))
+            solutions_bh2.append(None)
+    average_steps_bh2 = total_steps_bh2 / len(initial_states)
+    print(f"\nAverage number of steps (Best First Search, Manhattan Distance): {average_steps_bh2}")
+
+    #Best First Search with Euclidean Distance
+    total_steps_bh3 = 0
+    solutions_bh3 = []
+    print(colored("\nBest First Search with Heuristic 3 (Euclidean Distance):", "green"))
+    for i, state in enumerate(initial_states, start=1):
+        print(f"\nState {i}:")
+        print_board(state)
+        if count_inversions(state) % 2 == 0:
+            solution = best_first_search(state, heuristic3)
+            steps = 0
+            current = solution
+            while current.parent is not None:
+                steps += 1
+                current = current.parent
+            total_steps_bh3 += steps
+            solutions_bh3.append(solution)
+            print(f"Solution path for State {i}:")
+            print_solution(solution)
+            print("Number of steps: ", steps)
+        else:
+            print(colored("Odd number of inversions, no solution possible", "red"))
+            solutions_bh3.append(None)
+    average_steps_bh3 = total_steps_bh3 / len(initial_states)
+    print(f"\nAverage number of steps (Best First Search, Euclidean Distance): {average_steps_bh3}")
+
+
+
 
 
 
