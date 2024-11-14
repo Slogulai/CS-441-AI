@@ -8,21 +8,21 @@ POPULATION_SIZE = 100
 MUTATION_RATE = 0.1
 MAX_GENERATIONS = 1000
 
-#Is this actually the fitness??
+#Is this actually the fitness?? yes, but I would like to do it differently, should be pairs of non attacking queens
 def fitness(member):
     # Count number of queens that are attacking each other
     attacking = 0
     for i in range(BOARD_SIZE):
-        for j in range(i + 1, BOARD_SIZE):
+        for j in range(BOARD_SIZE):
             if member[i] == member[j] or abs(i - j) == abs(member[i] - member[j]):
                 attacking += 1
     return BOARD_SIZE - attacking
 
-# I believe this to be correct for normalizing
+# I believe this to be correct for normalizing, 
 def normalize_fitness(population):
-    fitness = [fitness(member) for member in population]
-    total = sum(fitness)
-    return [f / total for f in fitness] 
+    fitness_val = [fitness(member) for member in population] # dig deeper into the assignment statement for fitness, and maybe do it in a readable matter
+    total = sum(fitness_val) 
+    return [f / total for f in fitness_val] 
 
 # I believe this to be correct for select
 def select(population, normalized_fitness):
@@ -34,12 +34,12 @@ def select(population, normalized_fitness):
         sum += fitness
         fitness.append(sum)
 
-    # Selecting the two best parents
+    # Selecting the 
     parents = []
-    for i in range(2):
-        rand = random.random()
+    for i in range(2): # i is not used here, should double check this here
+        rand = random.random() # This should be based on the best possible fitness, not random
         for j, value in enumerate(fitness):
-            if rand <= value:
+            if rand <= value: #Rand would be always less than value, so this would pick bad candidates
                 parents.append(population[j])
     
     return parents[0], parents[1]
@@ -56,6 +56,6 @@ def crossover(parent1, parent2):
     return child1, child2
 
 def mutate(member):
-    if random.random() < MUTATION_RATE:
+    if random.random() < MUTATION_RATE: # This will always apply a mutation if random.random() < 0.1
         i, j = random.sample(range(BOARD_SIZE), 2)
         member[i], member[j] = member[j], member[i]
