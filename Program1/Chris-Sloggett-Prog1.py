@@ -360,3 +360,96 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#import heapq
+#import math
+#
+## Global Variables
+#goal_state = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+#
+## Dictionary for the possible moves
+#moves = {
+#    'U': -3,
+#    'D': 3,
+#    'L': -1,
+#    'R': 1
+#}
+#
+## Puzzle State Class
+#class PuzzleState:
+#    def __init__(self, board, parent, move, depth, cost):
+#        self.board = board
+#        self.parent = parent
+#        self.move = move
+#        self.depth = depth
+#        self.cost = cost
+#
+#    def __lt__(self, other):
+#        return self.cost < other.cost
+#
+#def manhattan_distance(board):
+#    distance = 0
+#    for i in range(9):
+#        if board[i] != 0:
+#            x1, y1 = divmod(i, 3)
+#            x2, y2 = divmod(board[i] - 1, 3)
+#            distance += abs(x1 - x2) + abs(y1 - y2)
+#    return distance
+#
+#def get_neighbors(state):
+#    neighbors = []
+#    zero_index = state.board.index(0)
+#    for move, pos in moves.items():
+#        new_index = zero_index + pos
+#        if 0 <= new_index < 9:
+#            if move == 'L' and zero_index % 3 == 0:
+#                continue
+#            if move == 'R' and zero_index % 3 == 2:
+#                continue
+#            new_board = state.board[:]
+#            new_board[zero_index], new_board[new_index] = new_board[new_index], new_board[zero_index]
+#            neighbors.append(PuzzleState(new_board, state, move, state.depth + 1, 0))
+#    return neighbors
+#
+#def a_star(start_state):
+#    open_list = []
+#    closed_list = set()
+#    start_node = PuzzleState(start_state, None, None, 0, manhattan_distance(start_state))
+#    heapq.heappush(open_list, start_node)
+#
+#    while open_list:
+#        current_node = heapq.heappop(open_list)
+#        if current_node.board == goal_state:
+#            return current_node
+#        closed_list.add(tuple(current_node.board))
+#
+#        for neighbor in get_neighbors(current_node):
+#            if tuple(neighbor.board) in closed_list:
+#                continue
+#            neighbor.cost = neighbor.depth + manhattan_distance(neighbor.board)
+#            heapq.heappush(open_list, neighbor)
+#    return None
+#
+#def print_solution(solution):
+#    path = []
+#    current = solution
+#    while current:
+#        path.append(current)
+#        current = current.parent
+#    path.reverse()
+#    for state in path:
+#        print_board(state.board)
+#        print()
+#
+#def print_board(board):
+#    for i in range(0, 9, 3):
+#        print(board[i:i+3])
+#
+#if __name__ == "__main__":
+#    start_state = [8, 6, 7, 2, 5, 4, 3, 0, 1]  # Example start state
+#    solution = a_star(start_state)
+#    if solution:
+#        print("Solution found!")
+#        print_solution(solution)
+#    else:
+#        print("No solution exists.")
